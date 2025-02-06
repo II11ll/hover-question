@@ -3,10 +3,24 @@ from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 import xml.etree.ElementTree as etree
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 import subprocess
 import os
 import markdown
+
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+allowed_ip = [config['url']['server_ip'],'127.0.0.1']
+def limit_ip_address(func):
+    def wrapper(*args, **kwargs):
+        if request.remote_addr not in allowed_ip:
+            return f'Forbidden, request IP {request.remote_addr}', 403  
+        return func(*args, **kwargs)
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 class HoverInlineProcessor(InlineProcessor):
     def handleMatch(self, m, data):
@@ -34,6 +48,7 @@ app = Flask(__name__)
 NOTES_DIR = os.path.join('static', 'note')
 
 # 首页，列出所有Markdown文件
+@limit_ip_address
 @app.route('/')
 def index():
     files = [f for f in os.listdir(NOTES_DIR) if f.endswith('.md')]
@@ -41,6 +56,7 @@ def index():
 
 # 查看文件的内容，返回解析后的HTML页面
 @app.route('/view/<filename>')
+@limit_ip_address
 def view(filename):
     file_path = os.path.join(NOTES_DIR, filename)
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -49,6 +65,7 @@ def view(filename):
     html_content = parse_markdown_with_hover(content)
     return render_template('view.html', filename=filename, html_content=html_content)
 @app.route('/pull', methods=['GET'])
+@limit_ip_address
 def git_pull():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.join(current_dir,'static')
