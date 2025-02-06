@@ -3,7 +3,8 @@ from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 import xml.etree.ElementTree as etree
 
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
+import subprocess
 import os
 import markdown
 
@@ -47,8 +48,12 @@ def view(filename):
     # 解析Markdown内容为HTML
     html_content = parse_markdown_with_hover(content)
     return render_template('view.html', filename=filename, html_content=html_content)
-
-
-# 启动应用
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/pull', methods=['GET'])
+def git_pull():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(current_dir,'static')
+    result = subprocess.run(['git', 'pull'], cwd=os.path.join(static_dir, 'note'), check=True, text=True, capture_output=True)
+    return jsonify({'success': True, 'output': result.stdout})
+# 启动应用 gunicorn -w 1 -b 0.0.0.0:5001 main:app
+# if __name__ == '__main__':
+#     app.run(debug=True)

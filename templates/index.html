@@ -14,6 +14,7 @@
 </head>
 <body>
     <h1>Markdown Files</h1>
+    <button onclick="sendGitPullRequest()">Git Pull</button>
     <ul>
         {% for file in files %}
             <li>
@@ -22,4 +23,20 @@
         {% endfor %}
     </ul>
 </body>
+<script>
+function sendGitPullRequest() {
+    fetch('/pull')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Git pull successful!\n' + data.output);
+            } else {
+                alert('Git pull failed!\n' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error sending request: ' + error);
+        });
+}
+</script>
 </html>
